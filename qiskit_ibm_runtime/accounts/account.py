@@ -12,7 +12,6 @@
 
 """Account related classes and functions."""
 
-from abc import abstractmethod
 import logging
 from typing import Optional, Literal
 from urllib.parse import urlparse
@@ -22,7 +21,7 @@ from ..proxies import ProxyConfiguration
 from ..utils.hgp import from_instance_format
 
 from .exceptions import InvalidAccountError, CloudResourceNameResolutionError
-from ..api.auth import QuantumAuth, CloudAuth
+from ..api.auth import QuantumAuth, CloudAuth, GenericAuth
 from ..utils import resolve_crn
 
 AccountType = Optional[Literal["cloud", "legacy"]]
@@ -43,6 +42,7 @@ class Account:
         proxies: Optional[ProxyConfiguration] = None,
         verify: Optional[bool] = True,
         channel_strategy: Optional[str] = None,
+        url: Optional[str] = None,
     ):
         """Account constructor.
 
@@ -56,7 +56,7 @@ class Account:
             channel_strategy: Error mitigation strategy.
         """
         self.channel: str = None
-        self.url: str = None
+        self.url: str = url
         self.token = token
         self.instance = instance
         self.proxies = proxies
@@ -107,6 +107,7 @@ class Account:
         private_endpoint: Optional[bool] = False,
     ) -> "Account":
         """Creates an account for a specific channel."""
+        print(f"------------------in create_account(): erstelle Account für {channel} mit url {url}")
         if channel == "ibm_quantum":
             return QuantumAccount(
                 url=url,
@@ -126,10 +127,29 @@ class Account:
                 channel_strategy=channel_strategy,
                 private_endpoint=private_endpoint,
             )
+        elif channel == "generic":
+            return GenericAccount(
+                url=url,
+                token=token,
+                instance=instance,
+                proxies=proxies,
+                verify=verify,
+                channel_strategy=channel_strategy,
+                private_endpoint=private_endpoint,
+            )
+        elif not channel:
+            return Account(
+                url=url,
+                token=token,
+                instance=instance,
+                proxies=proxies,
+                verify=verify,
+                channel_strategy=channel_strategy,
+            )
         else:
             raise InvalidAccountError(
                 f"Invalid `channel` value. Expected one of "
-                f"{['ibm_cloud', 'ibm_quantum']}, got '{channel}'."
+                f"{['ibm_cloud', 'ibm_quantum', 'generic']}, got '{channel}'."
             )
 
     def resolve_crn(self) -> None:
@@ -184,7 +204,7 @@ class Account:
     @staticmethod
     def _assert_valid_channel(channel: ChannelType) -> None:
         """Assert that the channel parameter is valid."""
-        if not (channel in ["ibm_cloud", "ibm_quantum"]):
+        if channel and not (channel in ["ibm_cloud", "ibm_quantum", "generic"]):
             raise InvalidAccountError(
                 f"Invalid `channel` value. Expected one of "
                 f"['ibm_cloud', 'ibm_quantum'], got '{channel}'."
@@ -213,7 +233,6 @@ class Account:
             config.validate()
 
     @staticmethod
-    @abstractmethod
     def _assert_valid_instance(instance: str) -> None:
         """Assert that the instance name is valid for the given account type."""
         pass
@@ -290,6 +309,9 @@ class CloudAccount(Account):
         resolved_url = url or IBM_CLOUD_API_URL
         self.channel = "ibm_cloud"
         self.url = resolved_url
+        print(f"------------------ resolved url: {self.url}")
+        print(f"------------------ private endpoint: {private_endpoint}")
+
         self.private_endpoint = private_endpoint
 
     def get_auth_handler(self) -> AuthBase:
@@ -307,6 +329,85 @@ class CloudAccount(Account):
         """
         crn = resolve_crn(
             channel="ibm_cloud",
+            url=self.url,
+            token=self.token,
+            instance=self.instance,
+        )
+        if len(crn) == 0:
+            raise CloudResourceNameResolutionError(
+                f"Failed to resolve CRN value for the provided service name {self.instance}."
+            )
+        if len(crn) > 1:
+            # handle edge-case where multiple service instances with the same name exist
+            logger.warning(
+                "Multiple CRN values found for service name %s: %s. Using %s.",
+                self.instance,
+                crn,
+                crn[0],
+            )
+
+        # overwrite with CRN value
+        self.instance = crn[0]
+
+    @staticmethod
+    def _assert_valid_instance(instance: str) -> None:
+        """Assert that the instance name is valid for the given account type."""
+        if not (isinstance(instance, str) and len(instance) > 0):
+            raise InvalidAccountError(
+                f"Invalid `instance` value. Expected a non-empty string, got '{instance}'. "
+                "If using the ibm_quantum channel,",
+                "please specify the channel when saving your account with `channel = 'ibm_quantum'`.",
+            )
+
+
+
+class GenericAccount(Account): #TODO: modify (make more generic)
+    """Class that represents an account with channel 'ibm_cloud'."""
+
+    def __init__(
+        self,
+        token: str,
+        url: Optional[str] = None,
+        instance: Optional[str] = None,
+        proxies: Optional[ProxyConfiguration] = None,
+        verify: Optional[bool] = True,
+        channel_strategy: Optional[str] = None,
+        private_endpoint: Optional[bool] = False,
+    ):
+        """Account constructor.
+
+        Args:
+            token: Account token to use.
+            url: Authentication URL.
+            instance: Service instance to use.
+            proxies: Proxy configuration.
+            verify: Whether to verify server's TLS certificate.
+            channel_strategy: Error mitigation strategy.
+            private_endpoint: Connect to private API URL.
+        """
+        super().__init__(token, instance, proxies, verify, channel_strategy)
+        resolved_url = url or IBM_CLOUD_API_URL
+        self.channel = "generic"
+        self.url = resolved_url
+        print(f"------------------ resolved url: {self.url}")
+        self.private_endpoint = private_endpoint
+
+    def get_auth_handler(self) -> AuthBase:
+        """Returns the Cloud authentication handler."""
+        return GenericAuth(api_key=self.token, crn=self.instance)
+
+    def resolve_crn(self) -> None:
+        """Resolves the corresponding unique Cloud Resource Name (CRN) for the given non-unique service
+        instance name and updates the ``instance`` attribute accordingly.
+
+        No-op if ``instance`` attribute is set to a Cloud Resource Name (CRN).
+
+        Raises:
+            CloudResourceNameResolutionError: if CRN value cannot be resolved.
+        """
+
+        crn = resolve_crn(
+            channel="generic", # TODO: change to generic
             url=self.url,
             token=self.token,
             instance=self.instance,

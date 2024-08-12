@@ -126,6 +126,7 @@ class QiskitRuntimeService:
         """
         super().__init__()
 
+
         self._account = self._discover_account(
             token=token,
             url=url,
@@ -137,6 +138,8 @@ class QiskitRuntimeService:
             verify=verify,
             channel_strategy=channel_strategy,
         )
+
+
 
         if private_endpoint is not None:
             self._account.private_endpoint = private_endpoint
@@ -154,11 +157,22 @@ class QiskitRuntimeService:
         self._channel_strategy = channel_strategy or self._account.channel_strategy
         self._channel = self._account.channel
         self._backend_allowed_list: List[str] = []
+        print(100*"°")
+        print(f"Nach Aufruf von _discover_account: self._channel ist {self._channel}")
+        print(100*"°")
 
         if self._channel == "ibm_cloud":
+            print("----REIN IN CLOUD----")
             self._api_client = RuntimeClient(self._client_params)
             self._backend_allowed_list = self._discover_cloud_backends()
             self._validate_channel_strategy()
+        elif self._channel == "generic":
+            print("----REIN IN GENERIC----")
+            self._api_client = RuntimeClient(self._client_params)
+            self._backend_allowed_list = self._discover_cloud_backends()  # optional
+            self._validate_channel_strategy()
+            print(50*"<>")
+            print("DONE")
         else:
             auth_client = self._authenticate_ibm_quantum_account(self._client_params)
             # Update client parameters to use authenticated values.
@@ -180,6 +194,7 @@ class QiskitRuntimeService:
             if not self._current_instance:
                 self._current_instance = self._get_hgp().name
                 logger.info("Default instance: %s", self._current_instance)
+
         QiskitRuntimeService.global_service = self
 
     def _discover_account(
@@ -223,9 +238,9 @@ class QiskitRuntimeService:
                     )
             account = AccountManager.get(filename=filename, name=name)
         elif channel:
-            if channel and channel not in ["ibm_cloud", "ibm_quantum"]:
-                raise ValueError("'channel' can only be 'ibm_cloud' or 'ibm_quantum'")
-            if token:
+            if channel and channel not in ["ibm_cloud", "ibm_quantum", "generic"]:
+                raise ValueError("'channel' can only be 'ibm_cloud' or 'ibm_quantum' or 'generic'")
+            if token:  #TODO: soll optional werden für generic
                 account = Account.create_account(
                     channel=channel,
                     token=token,
@@ -240,9 +255,15 @@ class QiskitRuntimeService:
                     logger.warning("Loading default %s account. Input 'url' is ignored.", channel)
                 account = AccountManager.get(filename=filename, name=name, channel=channel)
         elif any([token, url]):
-            # Let's not infer based on these attributes as they may change in the future.
-            raise ValueError(
-                "'channel' is required if 'token', or 'url' is specified but 'name' is not."
+            logger.warning("No channel given, using custom url.")
+            account = Account.create_account(
+                channel=None,
+                token=token,
+                url=url,
+                instance=instance,
+                proxies=proxies,
+                verify=verify_,
+                channel_strategy=channel_strategy,
             )
 
         # channel is not defined yet, get it from the AccountManager
@@ -256,8 +277,19 @@ class QiskitRuntimeService:
         if verify is not None:
             account.verify = verify
 
+        print(100*"-")
+        print("in _discover_account: After create_account")
+        print(f"Account is {account}")
+        print(f"Channel for Account is {channel}")
+        print(f"Instance is {instance}")
+        print(f"proxies is {proxies}")
+        print(f"verify is {verify}")
+        print(100*"-")
+
+        # if(not channel == 'generic'):
+
         # resolve CRN if needed
-        self._resolve_crn(account)
+        self._resolve_crn(account)  
 
         # ensure account is valid, fail early if not
         account.validate()
@@ -269,7 +301,10 @@ class QiskitRuntimeService:
         instance do not match.
 
         """
+        print("ANFANG___________")
         qctrl_enabled = self._api_client.is_qctrl_enabled()
+        print(f"DANACH: qcrlt_enabled={qctrl_enabled}, _channel_strategy={self._channel_strategy}")  # False, None
+
         if self._channel_strategy == "q-ctrl":
             if not qctrl_enabled:
                 raise IBMNotAuthorizedError(
@@ -775,6 +810,9 @@ class QiskitRuntimeService:
             QiskitBackendNotFoundError: if no backend could be found.
         """
         # pylint: disable=arguments-differ, line-too-long
+        print(f"---------- backend name: {name}")
+        print(f"---------- backend instance: {instance}")
+
         if not name:
             warnings.warn(
                 (
