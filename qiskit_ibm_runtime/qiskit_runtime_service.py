@@ -169,6 +169,7 @@ class QiskitRuntimeService:
         elif self._channel == "generic":
             print("----REIN IN GENERIC----")
             self._api_client = RuntimeClient(self._client_params)
+            print(f"INSTANCE: {self._client_params.instance}")
             self._backend_allowed_list = self._discover_cloud_backends()  # optional
             self._validate_channel_strategy()
             print(50*"<>")
@@ -286,10 +287,9 @@ class QiskitRuntimeService:
         print(f"verify is {verify}")
         print(100*"-")
 
-        # if(not channel == 'generic'):
-
-        # resolve CRN if needed
-        self._resolve_crn(account)  
+        if(not channel == 'generic'):
+            # resolve CRN if needed
+            self._resolve_crn(account)  
 
         # ensure account is valid, fail early if not
         account.validate()

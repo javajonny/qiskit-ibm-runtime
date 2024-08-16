@@ -427,13 +427,18 @@ class GenericAccount(Account): #TODO: modify (make more generic)
 
         # overwrite with CRN value
         self.instance = crn[0]
+        
 
     @staticmethod
     def _assert_valid_instance(instance: str) -> None:
         """Assert that the instance name is valid for the given account type."""
+        pass
+        '''
         if not (isinstance(instance, str) and len(instance) > 0):
             raise InvalidAccountError(
                 f"Invalid `instance` value. Expected a non-empty string, got '{instance}'. "
                 "If using the ibm_quantum channel,",
                 "please specify the channel when saving your account with `channel = 'ibm_quantum'`.",
             )
+        '''
+        

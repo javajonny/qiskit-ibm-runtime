@@ -67,10 +67,15 @@ class QuantumAuth(AuthBase):
 
 
 class GenericAuth(AuthBase):
-    """Attaches IBM Generic Authentication to the given Request object."""
+    """Attaches IBM Generic Authentication to the given Request object.\n
+        Set CRN to generic if None.
+    """
     #TODO: remove crn; get_headers soll keine Service-CRN enthalten
     def __init__(self, api_key: str, crn: str):
         self.api_key = api_key
+        if crn is None: 
+            print(f"GENERIC AUTH: CRN is None -> set crn = generic")
+            crn = "generic"
         self.crn = crn  
 
     def __eq__(self, other: object) -> bool:
