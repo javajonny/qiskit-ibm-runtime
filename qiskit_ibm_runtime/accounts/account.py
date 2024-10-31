@@ -107,7 +107,6 @@ class Account:
         private_endpoint: Optional[bool] = False,
     ) -> "Account":
         """Creates an account for a specific channel."""
-        print(f"------------------in create_account(): erstelle Account für {channel} mit url {url}")
         if channel == "ibm_quantum":
             return QuantumAccount(
                 url=url,
@@ -309,9 +308,6 @@ class CloudAccount(Account):
         resolved_url = url or IBM_CLOUD_API_URL
         self.channel = "ibm_cloud"
         self.url = resolved_url
-        print(f"------------------ resolved url: {self.url}")
-        print(f"------------------ private endpoint: {private_endpoint}")
-
         self.private_endpoint = private_endpoint
 
     def get_auth_handler(self) -> AuthBase:
@@ -389,7 +385,6 @@ class GenericAccount(Account): #TODO: modify (make more generic)
         resolved_url = url or IBM_CLOUD_API_URL
         self.channel = "generic"
         self.url = resolved_url
-        print(f"------------------ resolved url: {self.url}")
         self.private_endpoint = private_endpoint
 
     def get_auth_handler(self) -> AuthBase:

@@ -44,11 +44,6 @@ class RuntimeClient(BaseBackendClient):
             auth=params.get_auth_handler(),
             **params.connection_parameters(),
         )
-        print("------------------ RuntimeClient ------------------")
-        print(f"session.base_url ={self._session.base_url}")
-        print(f"session.auth ={self._session.auth}")
-        print("------------------ ------------- ------------------")
-
         self._api = Runtime(self._session)
         self._configuration_registry: Dict[str, Dict[str, Any]] = {}
 

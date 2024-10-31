@@ -230,6 +230,7 @@ class Runtime(RestAdapterBase):
             params["provider"] = hgp
         if channel_strategy:
             params["channel_strategy"] = channel_strategy
+        
         return self.session.get(url, params=params, timeout=timeout).json()
 
     def is_qctrl_enabled(self) -> bool:

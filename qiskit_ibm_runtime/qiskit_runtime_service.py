@@ -157,23 +157,15 @@ class QiskitRuntimeService:
         self._channel_strategy = channel_strategy or self._account.channel_strategy
         self._channel = self._account.channel
         self._backend_allowed_list: List[str] = []
-        print(100*"°")
-        print(f"Nach Aufruf von _discover_account: self._channel ist {self._channel}")
-        print(100*"°")
 
         if self._channel == "ibm_cloud":
-            print("----REIN IN CLOUD----")
             self._api_client = RuntimeClient(self._client_params)
             self._backend_allowed_list = self._discover_cloud_backends()
             self._validate_channel_strategy()
         elif self._channel == "generic":
-            print("----REIN IN GENERIC----")
             self._api_client = RuntimeClient(self._client_params)
-            print(f"INSTANCE: {self._client_params.instance}")
             self._backend_allowed_list = self._discover_cloud_backends()  # optional
             self._validate_channel_strategy()
-            print(50*"<>")
-            print("DONE")
         else:
             auth_client = self._authenticate_ibm_quantum_account(self._client_params)
             # Update client parameters to use authenticated values.
@@ -278,15 +270,6 @@ class QiskitRuntimeService:
         if verify is not None:
             account.verify = verify
 
-        print(100*"-")
-        print("in _discover_account: After create_account")
-        print(f"Account is {account}")
-        print(f"Channel for Account is {channel}")
-        print(f"Instance is {instance}")
-        print(f"proxies is {proxies}")
-        print(f"verify is {verify}")
-        print(100*"-")
-
         if(not channel == 'generic'):
             # resolve CRN if needed
             self._resolve_crn(account)  
@@ -301,9 +284,7 @@ class QiskitRuntimeService:
         instance do not match.
 
         """
-        print("ANFANG___________")
         qctrl_enabled = self._api_client.is_qctrl_enabled()
-        print(f"DANACH: qcrlt_enabled={qctrl_enabled}, _channel_strategy={self._channel_strategy}")  # False, None
 
         if self._channel_strategy == "q-ctrl":
             if not qctrl_enabled:
@@ -810,8 +791,6 @@ class QiskitRuntimeService:
             QiskitBackendNotFoundError: if no backend could be found.
         """
         # pylint: disable=arguments-differ, line-too-long
-        print(f"---------- backend name: {name}")
-        print(f"---------- backend instance: {instance}")
 
         if not name:
             warnings.warn(

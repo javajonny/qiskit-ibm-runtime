@@ -74,7 +74,6 @@ class GenericAuth(AuthBase):
     def __init__(self, api_key: str, crn: str):
         self.api_key = api_key
         if crn is None: 
-            print(f"GENERIC AUTH: CRN is None -> set crn = generic")
             crn = "generic"
         self.crn = crn  
 

@@ -125,8 +125,6 @@ def resolve_crn(channel: str, url: str, instance: str, token: str) -> List[str]:
     """Resolves the Cloud Resource Name (CRN) for the given cloud account."""
     if channel not in["ibm_cloud", "generic"]:
         raise ValueError("CRN value can only be resolved for cloud and generic accounts.")
-
-    print(f"-------in resolve_crn-> url: {url}")
     if is_crn(instance):
         # no need to resolve CRN value by name
         return [instance]
