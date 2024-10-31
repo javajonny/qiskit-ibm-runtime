@@ -233,7 +233,7 @@ class QiskitRuntimeService:
         elif channel:
             if channel and channel not in ["ibm_cloud", "ibm_quantum", "generic"]:
                 raise ValueError("'channel' can only be 'ibm_cloud' or 'ibm_quantum' or 'generic'")
-            if token:  #TODO: soll optional werden für generic
+            if token: 
                 account = Account.create_account(
                     channel=channel,
                     token=token,
